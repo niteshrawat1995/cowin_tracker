@@ -73,16 +73,9 @@ def msg_builder(data) -> str:
 
 def main(event=None, context=None):
     slots = get_available_slots()
-    found = False
     if slots:
-        found = True
         msg = msg_builder(slots)
         send_whatsapp(msg)
-    return {
-        "statusCode": 200,
-        "body": json.dumps({"found": found})
-    }
 
-
-# if __name__ == "__main__":
-#     lambda_handler()
+if __name__ == "__main__":
+    main()
