@@ -1,0 +1,5 @@
+venv/
+*.cer
+*.pem
+*.DS_Store
+.env
