@@ -1,10 +1,10 @@
 import os
-from twilio.rest import Client
 import datetime
-import requests
 from typing import List
 import time
 
+import requests
+from twilio.rest import Client
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -87,18 +87,24 @@ def msg_builder(data) -> str:
     msg += f" Go visit: {COWIN_BOOKING_SITE}"
     return msg
 
-def main(event=None, context=None):
-    # set the script in cron for every minute (* * * * *) and then excecute the script in gap of 10 seconds 6 times
-    # not the best solution but, whatever.
-    for _ in range(6):     
+def main(debug=True):
+    def _run():
         slots = get_available_slots(pincode=201301, min_age_limit=18)
         if slots:
             msg = msg_builder(slots)
             twilio = Twilio()
             twilio.send_whatsapp(msg)
             twilio.send_sms(msg)
-        # sleeping for 10 secs
-        time.sleep(10)
+    
+    if debug:
+        _run()
+    else:
+        # set the script in cron for every minute (* * * * *) and then excecute the script in gap of 10 seconds 6 times
+        # not the best solution but, whatever.
+        for _ in range(6):
+            _run()
+            # sleeping for 10 secs
+            time.sleep(10)
 
 if __name__ == "__main__":
-    main()
+    main(debug=False)
