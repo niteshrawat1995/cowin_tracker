@@ -12,20 +12,31 @@ load_dotenv()
 TWILIO_ACCOUNT_SID = os.environ.get("ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.environ.get("AUTH_TOKEN")
 FROM_WHATSAPP_NUMBER = os.environ.get("FROM_WHATSAPP_NUMBER")
+FROM_SMS_NUMBER = os.environ.get("FROM_SMS_NUMBER")
+TO_NUMBER = os.environ.get("TO_NUMBER")
 
-# Your Account Sid and Auth Token from twilio.com/console
-# and set the environment variables. See http://twil.io/secure
-def send_whatsapp(msg):
-    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-    to_whatsapp_number = "whatsapp:+917503437728"
+class Twilio:
+    def __init__(self):
+        self.client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        self.to_number = TO_NUMBER
 
-    message = client.messages \
-        .create(
-            body=msg,
-            from_=FROM_WHATSAPP_NUMBER,
-            to=to_whatsapp_number
+    def send_whatsapp(self, msg):
+        from_number = FROM_WHATSAPP_NUMBER
+        to_number = f"whatsapp:{self.to_number}"
+        print("Sending whatsapp")
+        self._send(from_number, to_number, msg)
+        
+    def send_sms(self, msg):
+        from_number = FROM_SMS_NUMBER
+        to_number = self.to_number
+        print("Sending sms")
+        self._send(from_number, to_number, msg)
+
+    def _send(self, from_number, to_number, msg):
+        message = self.client.messages.create(
+            body=msg, from_=from_number, to=to_number
         )
-    print(message.sid)
+        print(message.sid)
 
 
 def get_available_slots() -> List:
@@ -38,7 +49,7 @@ def get_available_slots() -> List:
         }
     response = requests.get(url, params={"pincode": 201301, "date": date_str}, headers=headers)
     if response.status_code != 200:
-        print(f"Cannot call API | ErrorCode: {response.status_code}")
+        print(f"Cannot call API | ErrorCode: {response.status_code} | Response {response.content}")
         return []
     data = response.json()
     information_list = []
@@ -75,7 +86,9 @@ def main(event=None, context=None):
     slots = get_available_slots()
     if slots:
         msg = msg_builder(slots)
-        send_whatsapp(msg)
+        twilio = Twilio()
+        twilio.send_whatsapp(msg)
+        twilio.send_sms(msg)
 
 if __name__ == "__main__":
     main()
