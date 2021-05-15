@@ -1,9 +1,12 @@
+import os
 from .base import Notifier
 
 import requests
 
-API_KEY = "Kdt5FjI4QfU7HpaJAkGMg6WRble3czLy0Nsq2DVZirYwTuCxmO1gcR4hy697NdtJuHZpIs3kqBj2Tboe"
+from dotenv import load_dotenv
+load_dotenv()
 
+API_KEY = os.environ.get("FAST2SMS_API_KEY") 
 
 class Fast2Sms(Notifier):
     def notify(self, to, msg):

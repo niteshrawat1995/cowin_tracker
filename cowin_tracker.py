@@ -2,9 +2,10 @@ import datetime
 import time
 import requests
 from typing import List
+import notifiers
 
 from notifiers.base import Notifier
-from notifiers import config, TWILIO, FAST2SMS
+from notifiers import CLICKSEND, LINUX, config, TWILIO, FAST2SMS
 from utils import read_dt, save_dt
 
 COWIN_BOOKING_SITE = "https://selfregistration.cowin.gov.in/"
@@ -56,12 +57,12 @@ def msg_builder(data) -> str:
     # msg += f" Go visit: {COWIN_BOOKING_SITE}"
     # return msg
     # bigger msgs are actually multiple messages combined which will cost you more.
-    msg = f"Slot(s) Available! visit: {COWIN_BOOKING_SITE}"
+    msg = f"Drink Water NOW !"
     return msg
 
-def main(notifier: Notifier, debug=True):
+def main(notifiers: List[Notifier], debug=True):
 
-    def _run(notifier: Notifier):
+    def _run(notifiers: List[Notifier]):
         slots = get_available_slots(pincode=201301, min_age_limit=18)
         last_send_date = read_dt()
         current_dt = datetime.datetime.now()
@@ -70,21 +71,23 @@ def main(notifier: Notifier, debug=True):
         if slots and last_send_minutes >= 30:
             # send notification and update last send date
             msg = msg_builder(slots)
-            notifier.notify(to="7503437728", msg=msg)
+            for notifier in notifiers:
+                notifier.notify(to="7503437728", msg=msg)
             save_dt(current_dt)
         else:
             print(f"Notifiation NOT send | slots {len(slots)} | duration {last_send_minutes} mins")
 
     if debug:
-        _run(notifier=notifier)
+        _run(notifiers=notifiers)
     else:
         # set the script in cron for every minute (* * * * *) and then excecute the script in gap of 10 seconds 6 times
         # not the best solution but, whatever.
         for _ in range(6):
-            _run(notifier=notifier)
+            _run(notifiers=notifiers)
             # sleeping for 10 secs
             time.sleep(10)
 
 if __name__ == "__main__":
-    notifier = config[FAST2SMS]()
-    main(notifier, debug=False)
+    notifiers = [config[FAST2SMS](), config[LINUX]()]
+    main(notifiers, debug=False)
+
