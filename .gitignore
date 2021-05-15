@@ -3,3 +3,6 @@ venv/
 *.pem
 *.DS_Store
 .env
+.vscode/
+datefile.txt
+*__pycache__*

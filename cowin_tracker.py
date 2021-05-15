@@ -1,44 +1,13 @@
-import os
 import datetime
-from typing import List
 import time
-
 import requests
-from twilio.rest import Client
-from dotenv import load_dotenv
+from typing import List
 
-load_dotenv()
-
-TWILIO_ACCOUNT_SID = os.environ.get("ACCOUNT_SID")
-TWILIO_AUTH_TOKEN = os.environ.get("AUTH_TOKEN")
-FROM_WHATSAPP_NUMBER = os.environ.get("FROM_WHATSAPP_NUMBER")
-FROM_SMS_NUMBER = os.environ.get("FROM_SMS_NUMBER")
-TO_NUMBER = os.environ.get("TO_NUMBER")
+from notifiers.base import Notifier
+from notifiers import config, TWILIO, FAST2SMS
+from utils import read_dt, save_dt
 
 COWIN_BOOKING_SITE = "https://selfregistration.cowin.gov.in/"
-
-class Twilio:
-    def __init__(self):
-        self.client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-        self.to_number = TO_NUMBER
-
-    def send_whatsapp(self, msg):
-        from_number = FROM_WHATSAPP_NUMBER
-        to_number = f"whatsapp:{self.to_number}"
-        print("Sending whatsapp")
-        self._send(from_number, to_number, msg)
-        
-    def send_sms(self, msg):
-        from_number = FROM_SMS_NUMBER
-        to_number = self.to_number
-        print("Sending sms")
-        self._send(from_number, to_number, msg)
-
-    def _send(self, from_number, to_number, msg):
-        message = self.client.messages.create(
-            body=msg, from_=from_number, to=to_number
-        )
-        print(message.sid)
 
 
 def get_available_slots(pincode: int, min_age_limit: int) -> List:
@@ -63,7 +32,7 @@ def get_available_slots(pincode: int, min_age_limit: int) -> List:
             vaccine = session["vaccine"]
             date = session["date"]
             available_capacity = session["available_capacity"]
-            if session["min_age_limit"] == min_age_limit  and available_capacity > 0:
+            if session["min_age_limit"] == min_age_limit  and available_capacity >= 5:
                 information = {
                     "center_name": center_name,
                     "center_address": center_address,
@@ -76,35 +45,46 @@ def get_available_slots(pincode: int, min_age_limit: int) -> List:
 
 def msg_builder(data) -> str:
     msg = ""
-    for d in data:
-        center_name = d["center_name"]
-        center_address = d["center_address"]
-        available_capacity = d["available_capacity"]
-        vaccine = d["vaccine"]
-        date = d["date"]
-        row_msg = f"{center_name} | {center_address} | {date} |{available_capacity} | {vaccine} \n"
-        msg += row_msg
-    msg += f" Go visit: {COWIN_BOOKING_SITE}"
+    # for d in data:
+    #     center_name = d["center_name"]
+    #     center_address = d["center_address"]
+    #     available_capacity = d["available_capacity"]
+    #     vaccine = d["vaccine"]
+    #     date = d["date"]
+    #     row_msg = f"{center_name} | {center_address} | {date} |{available_capacity} | {vaccine} \n"
+    #     msg += row_msg
+    # msg += f" Go visit: {COWIN_BOOKING_SITE}"
+    # return msg
+    # bigger msgs are actually multiple messages combined which will cost you more.
+    msg = f"Slot(s) Available! visit: {COWIN_BOOKING_SITE}"
     return msg
 
-def main(debug=True):
-    def _run():
+def main(notifier: Notifier, debug=True):
+
+    def _run(notifier: Notifier):
         slots = get_available_slots(pincode=201301, min_age_limit=18)
-        if slots:
+        last_send_date = read_dt()
+        current_dt = datetime.datetime.now()
+        last_send_timedelta = current_dt - last_send_date
+        last_send_minutes = last_send_timedelta.total_seconds() / 60
+        if slots and last_send_minutes >= 30:
+            # send notification and update last send date
             msg = msg_builder(slots)
-            twilio = Twilio()
-            twilio.send_whatsapp(msg)
-            twilio.send_sms(msg)
-    
+            notifier.notify(to="7503437728", msg=msg)
+            save_dt(current_dt)
+        else:
+            print(f"Notifiation NOT send | slots {len(slots)} | duration {last_send_minutes} mins")
+
     if debug:
-        _run()
+        _run(notifier=notifier)
     else:
         # set the script in cron for every minute (* * * * *) and then excecute the script in gap of 10 seconds 6 times
         # not the best solution but, whatever.
         for _ in range(6):
-            _run()
+            _run(notifier=notifier)
             # sleeping for 10 secs
             time.sleep(10)
 
 if __name__ == "__main__":
-    main(debug=False)
+    notifier = config[FAST2SMS]()
+    main(notifier, debug=False)
