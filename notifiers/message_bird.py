@@ -1,14 +1,16 @@
-print(__name__)
+import os
 from notifiers.base import Notifier
 
 import messagebird
+from dotenv import load_dotenv
+load_dotenv()
 
-API_KEY = "kzz9xEpEmawjUgur16pFD9oRG"
 
 class MessageBird(Notifier):
+    API_KEY = os.environ.get("API_KEY_MESSAGEBIRD")
 
     def __init__(self) -> None:
-        self.client = messagebird.Client(access_key=API_KEY)
+        self.client = messagebird.Client(access_key=self.API_KEY)
 
     def notify(self, to, msg):
         message = self.client.message_create(
