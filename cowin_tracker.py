@@ -5,7 +5,7 @@ from typing import List
 import notifiers
 
 from notifiers.base import Notifier
-from notifiers import CLICKSEND, LINUX, config, TWILIO, FAST2SMS
+from notifiers import CLICKSEND, GMAIL, LINUX, config, TWILIO, FAST2SMS
 from utils import read_dt, save_dt
 
 COWIN_BOOKING_SITE = "https://selfregistration.cowin.gov.in/"
@@ -57,7 +57,7 @@ def msg_builder(data) -> str:
     # msg += f" Go visit: {COWIN_BOOKING_SITE}"
     # return msg
     # bigger msgs are actually multiple messages combined which will cost you more.
-    msg = f"Drink Water NOW !"
+    msg = "Rawat Parlour Open Now !"
     return msg
 
 def main(notifiers: List[Notifier], debug=True):
@@ -88,6 +88,6 @@ def main(notifiers: List[Notifier], debug=True):
             time.sleep(10)
 
 if __name__ == "__main__":
-    notifiers = [config[FAST2SMS](), config[LINUX]()]
+    notifiers = [config[FAST2SMS](), config[LINUX](), config[CLICKSEND](), config[GMAIL]()]
     main(notifiers, debug=False)
 
