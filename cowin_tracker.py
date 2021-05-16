@@ -11,7 +11,7 @@ from utils import read_dt, save_dt
 COWIN_BOOKING_SITE = "https://selfregistration.cowin.gov.in/"
 
 
-def get_available_slots(pincode: int, min_age_limit: int) -> List:
+def get_available_slots(pincodes: List[int], min_age_limit: int) -> List:
     now = datetime.date.today()
     date_str = now.strftime("%d-%m-%Y") 
     url = "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByPin"
@@ -19,30 +19,31 @@ def get_available_slots(pincode: int, min_age_limit: int) -> List:
         'Content-Type': 'application/json', 'Accept-Language' : 'hi_IN' , 
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'
         }
-    response = requests.get(url, params={"pincode": pincode, "date": date_str}, headers=headers)
-    if response.status_code != 200:
-        print(f"Cannot call API | ErrorCode: {response.status_code} | Response {response.content}")
-        return []
-    data = response.json()
-    information_list = []
-    for center in data["centers"]:
-        center_name = center["name"]
-        center_address = center["address"]
-        for session in center["sessions"]:
-            available_capacity = session["available_capacity"]
-            vaccine = session["vaccine"]
-            date = session["date"]
-            available_capacity = session["available_capacity"]
-            if session["min_age_limit"] == min_age_limit  and available_capacity >= 5:
-                information = {
-                    "center_name": center_name,
-                    "center_address": center_address,
-                    "available_capacity": available_capacity,
-                    "vaccine": vaccine,
-                    "date": date,
-                }
-                information_list.append(information)
-    return information_list
+    available_slots = []
+    for pincode in pincodes:
+        response = requests.get(url, params={"pincode": pincode, "date": date_str}, headers=headers)
+        if response.status_code != 200:
+            print(f"Cannot call API | ErrorCode: {response.status_code} | Response {response.content}")
+            continue
+        data = response.json()
+        for center in data["centers"]:
+            center_name = center["name"]
+            center_address = center["address"]
+            for session in center["sessions"]:
+                available_capacity = session["available_capacity"]
+                vaccine = session["vaccine"]
+                date = session["date"]
+                available_capacity = session["available_capacity"]
+                if session["min_age_limit"] == min_age_limit  and available_capacity >= 5:
+                    information = {
+                        "center_name": center_name,
+                        "center_address": center_address,
+                        "available_capacity": available_capacity,
+                        "vaccine": vaccine,
+                        "date": date,
+                    }
+                    available_slots.append(information)
+    return available_slots
 
 def msg_builder(data) -> str:
     msg = ""
@@ -63,7 +64,7 @@ def msg_builder(data) -> str:
 def main(notifiers: List[Notifier], debug=True):
 
     def _run(notifiers: List[Notifier]):
-        slots = get_available_slots(pincode=201301, min_age_limit=18)
+        slots = get_available_slots(pincodes=[201301, 110076, 110096], min_age_limit=18)
         last_send_date = read_dt()
         current_dt = datetime.datetime.now()
         last_send_timedelta = current_dt - last_send_date
@@ -90,4 +91,3 @@ def main(notifiers: List[Notifier], debug=True):
 if __name__ == "__main__":
     notifiers = [config[FAST2SMS](), config[LINUX](), config[CLICKSEND](), config[GMAIL]()]
     main(notifiers, debug=False)
-
