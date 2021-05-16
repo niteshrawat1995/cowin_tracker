@@ -1,4 +1,3 @@
-from test import BASE_DIR
 from dateutil.parser import parse
 from pathlib import Path
 from os import path

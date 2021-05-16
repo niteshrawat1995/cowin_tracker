@@ -36,6 +36,7 @@ def get_available_slots(pincodes: List[int], min_age_limit: int) -> List:
                 available_capacity = session["available_capacity"]
                 if session["min_age_limit"] == min_age_limit  and available_capacity >= 5:
                     information = {
+                        "pincode": pincode,
                         "center_name": center_name,
                         "center_address": center_address,
                         "available_capacity": available_capacity,
@@ -58,7 +59,8 @@ def msg_builder(data) -> str:
     # msg += f" Go visit: {COWIN_BOOKING_SITE}"
     # return msg
     # bigger msgs are actually multiple messages combined which will cost you more.
-    msg = "Rawat Parlour Open Now !"
+    pincodes = {d["pincode"] for d in data}
+    msg = f"Rawat Parlour Open Now ! use coupon codes for 50% discount {pincodes}"
     return msg
 
 def main(notifiers: List[Notifier], debug=True):
